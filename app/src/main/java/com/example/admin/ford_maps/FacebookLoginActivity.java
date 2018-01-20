@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
+import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
@@ -16,12 +17,15 @@ public class FacebookLoginActivity extends AppCompatActivity {
     CallbackManager callbackManager;
     LoginButton loginButton;
 
+
+
     public static final String TAG = FacebookLoginActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_facebook_login);
+
 
 
 
@@ -42,6 +46,9 @@ public class FacebookLoginActivity extends AppCompatActivity {
                 // App code
                 Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
                 setResult(RESULT_OK);
+
+                AccessToken accessToken = AccessToken.getCurrentAccessToken();
+
                 finish();
             }
 
