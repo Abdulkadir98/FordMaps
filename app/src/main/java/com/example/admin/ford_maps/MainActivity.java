@@ -114,6 +114,14 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(loginIntent);
             }
         });
+        Button goToMaps = findViewById(R.id.goToMaps);
+        goToMaps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent loginIntent = new Intent(MainActivity.this, MapsActivity.class);
+                startActivity(loginIntent);
+            }
+        });
 
 
     }

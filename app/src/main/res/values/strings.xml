@@ -2,4 +2,5 @@
     <string name="app_name">Ford-Maps</string>
     <string name="facebook_app_id">1895835790457622</string>
     <string name="fb_login_protocol_scheme">fb1895835790457622</string>
+    <string name="title_activity_maps">Map</string>
 </resources>
