@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "889771412015",
+    "firebase_url": "https://fordmaps-3205a.firebaseio.com",
+    "project_id": "fordmaps-3205a",
+    "storage_bucket": "fordmaps-3205a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889771412015:android:4dbda6a992d27581",
+        "android_client_info": {
+          "package_name": "com.example.admin.ford_maps"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "889771412015-adcec8l18hqs4inb2okdefv6v0jiv9ui.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.admin.ford_maps",
+            "certificate_hash": "22e2aada1a27665c576c1205800e28bbdb48c1da"
+          }
+        },
+        {
+          "client_id": "889771412015-pt7jjr5hojbpsu97a8dk8oqaiijd1a6f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlAqWSPN8LYTeVk4xK17sLFZREo3Hcwqk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "889771412015-pt7jjr5hojbpsu97a8dk8oqaiijd1a6f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
