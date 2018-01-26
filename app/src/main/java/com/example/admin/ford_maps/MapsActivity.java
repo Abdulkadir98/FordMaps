@@ -1,6 +1,8 @@
 package com.example.admin.ford_maps;
 
 import android.Manifest;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -11,10 +13,12 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.widget.EditText;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResolvableApiException;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -23,6 +27,9 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -35,11 +42,14 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.util.ArrayList;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
         LocationListener {
 
     private GoogleMap mMap;
+    private ArrayList<LatLng> markers = new ArrayList<>();
 
     private FusedLocationProviderClient mFusedLocationClient;
     private LatLng coordinates;
@@ -48,6 +58,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //Firebase instance variables
     private DatabaseReference mFirebaseDatabase;
+    private Fragment place_autocomplete_fragment;
+    private EditText enter_destination;
 
 
 
@@ -59,6 +71,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+
+        final PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+
+        final FragmentManager fm = getFragmentManager();
+//        fm.beginTransaction()
+//                .hide(autocompleteFragment)
+//                .commit();
+
+//        enter_destination.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+//            @Override
+//            public void onFocusChange(View view, boolean b) {
+//                if(b || !b)
+//                {
+//                    fm.beginTransaction()
+//                            .show(autocompleteFragment)
+//                            .commit();
+//                }
+//            }
+//        });
+
+
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                Log.i("blah", "Place: " + place.getName());
+                LatLng placeCoordinates = place.getLatLng();
+
+                markers.add(placeCoordinates);
+                createMarkers();
+
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                Log.i("blah", "An error occurred: " + status);
+            }
+        });
+
 
         mFirebaseDatabase = FirebaseDatabase.getInstance().getReference();
 
@@ -100,6 +154,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -122,6 +177,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Add a marker in Sydney and move the camera
         //LatLng sydney = new LatLng(-34, 151);
+
 
 
     }
@@ -203,10 +259,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             Log.i("hgh", "Coordinates: " + location.getLatitude() + " " + location.getLongitude());
                             // Logic to handle location object
                             coordinates = new LatLng(location.getLatitude(), location.getLongitude());
-                            mMap.addMarker(new MarkerOptions().position(coordinates).title("Marker in Sydney"));
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 15));
+//                            mMap.addMarker(new MarkerOptions().position(coordinates).title("Marker in Sydney"));
+//                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 15));
+                            Log.i("maps", "called");
 
-                            String userID =  Utils.getAccessToken(MapsActivity.this);
+                            if(markers.size() == 0){
+                                markers.add(coordinates);
+                                createMarkers();
+                            }
+
+                            String userID =  Utils.getAccessTokenUserID(MapsActivity.this);
 
                             mFirebaseDatabase.child("users").child(userID).child("latitude")
                                     .setValue(location.getLatitude());
@@ -238,7 +300,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // All location settings are satisfied. The client can initialize
                 // location requests here.
                 // ...
-                showLocation();
+
             }
         });
 
@@ -273,7 +335,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             showLocation();
 
 
-
     }
 
     private void startLocationUpdates() {
@@ -290,5 +351,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mFusedLocationClient.requestLocationUpdates(mLocationRequest,
                 mLocationCallback,
                 null /* Looper */);
+    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        MenuInflater inflater = getMenuInflater();
+//        inflater.inflate(R.menu.toolbar_options_menu, menu);
+//        return true;
+//    }
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        if(item.getItemId()==R.id.change_language)
+//        {
+//            return true;
+//        }
+//        else
+//            return super.onOptionsItemSelected(item);
+//    }
+
+    protected void createMarkers() {
+        mMap.clear();
+        for(int i=0; i<markers.size(); i++){
+            mMap.addMarker(new MarkerOptions()
+                    .position(markers.get(i))
+                    .anchor(0.5f, 0.5f));
+
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(i), 15));
+
+        }
+
     }
 }

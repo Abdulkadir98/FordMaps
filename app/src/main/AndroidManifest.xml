@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.admin.ford_maps">
 
+    <meta-data
+        android:name="com.google.android.geo.API_KEY"
+        android:value=" AIzaSyDp1ZVT5oTzE7rJ20NroeS0akTWU28Yj7E "/>
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />

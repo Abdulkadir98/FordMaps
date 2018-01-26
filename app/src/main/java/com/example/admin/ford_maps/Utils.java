@@ -8,7 +8,7 @@ import android.preference.PreferenceManager;
  */
 
 public class Utils {
-    public static String getAccessToken(Context context){
+    public static String getAccessTokenUserID(Context context){
         return PreferenceManager.getDefaultSharedPreferences(context).getString("ACCESS_TOKEN_USERID", "defaultStringIfNothingFound");
     }
 }
