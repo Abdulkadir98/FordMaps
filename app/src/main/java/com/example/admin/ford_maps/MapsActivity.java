@@ -116,9 +116,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 markers.add(placeCoordinates);
 
-                if(markers.size()> 1){
-                   markers.remove(1);
-                   markers.add(1, placeCoordinates);
+                if(markers.size()> 0){
+                   markers.clear();
+
+                   markers.add(coordinates);
+                   markers.add(placeCoordinates);
                }
 
                createMarkers();
