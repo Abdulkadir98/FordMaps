@@ -2,6 +2,7 @@ package com.example.admin.ford_maps;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -43,6 +44,9 @@ public class MainActivity extends AppCompatActivity {
         else
         {
             final AccessToken accessToken = AccessToken.getCurrentAccessToken();
+
+            //Storing access token
+            PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString("ACCESS_TOKEN_USERID", accessToken.getUserId()).apply();
 
             Log.i(TAG, "user id: "+accessToken.getUserId().toString());
 

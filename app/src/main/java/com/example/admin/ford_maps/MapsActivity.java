@@ -32,6 +32,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
@@ -44,10 +46,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationCallback mLocationCallback;
     private LocationRequest mLocationRequest;
 
+    //Firebase instance variables
+    private DatabaseReference mFirebaseDatabase;
+
+
 
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_LOCATION = 1;
     private static final int REQUEST_CHECK_SETTINGS = 2;
-    private boolean mRequestingLocationUpdates = false;
 
 
     @Override
@@ -55,18 +60,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        mFirebaseDatabase = FirebaseDatabase.getInstance().getReference();
+
+
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_LOCATION);
 
+            return;
+        }
 
+        else{
+            changeLocationSettings();
+        }
         mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with location data
                     // ...
-                    LatLng latLng= new LatLng(location.getLatitude(),location.getLongitude());
-                    mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in Sydney"));
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 5));
+//                    LatLng latLng= new LatLng(location.getLatitude(),location.getLongitude());
+//                    mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in Sydney"));
+//                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
 
 
                 }
@@ -153,7 +177,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    void showlocation() {
+    void showLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -180,7 +204,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             // Logic to handle location object
                             coordinates = new LatLng(location.getLatitude(), location.getLongitude());
                             mMap.addMarker(new MarkerOptions().position(coordinates).title("Marker in Sydney"));
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 5));
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 15));
+
+                            String userID =  Utils.getAccessToken(MapsActivity.this);
+
+                            mFirebaseDatabase.child("users").child(userID).child("latitude")
+                                    .setValue(location.getLatitude());
+                            mFirebaseDatabase.child("users").child(userID).child("longitude")
+                                    .setValue(location.getLongitude());
 
                         }
                     }
@@ -207,8 +238,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // All location settings are satisfied. The client can initialize
                 // location requests here.
                 // ...
-                mRequestingLocationUpdates = true;
-                showlocation();
+                showLocation();
             }
         });
 
@@ -240,7 +270,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
             startLocationUpdates();
-            showlocation();
+            showLocation();
 
 
 
