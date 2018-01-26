@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "889771412015-5u94q2e228h3tp04bk7r7cg2onhi9nnv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.admin.ford_maps",
+            "certificate_hash": "dd568a269b8b5f4323baf645e830756c8cd0234d"
+          }
+        },
+        {
           "client_id": "889771412015-adcec8l18hqs4inb2okdefv6v0jiv9ui.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

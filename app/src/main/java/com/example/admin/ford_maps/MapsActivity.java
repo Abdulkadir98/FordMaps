@@ -56,47 +56,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            ActivityCompat.requestPermissions(MapsActivity.this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    MY_PERMISSIONS_REQUEST_ACCESS_LOCATION);
 
-            return;
-        }
+
         mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with location data
                     // ...
-
-                    showlocation(new LatLng(location.getLatitude(), location.getLongitude()));
+                    LatLng latLng= new LatLng(location.getLatitude(),location.getLongitude());
+                    mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in Sydney"));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 5));
 
 
                 }
             };
         };
 
-        mFusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        // Got last known location. In some rare situations this can be null.
-                        if (location != null) {
 
-                            Log.i("hgh", "Coordinates: " + location.getLatitude() + " " + location.getLongitude());
-                            // Logic to handle location object
-                            coordinates = new LatLng(location.getLatitude(), location.getLongitude());
-                        }
-                    }
-                });
 
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -176,12 +153,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    void showlocation(LatLng location) {
-        mMap.addMarker(new MarkerOptions().position(location).title("Marker in Sydney"));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 5));
+    void showlocation() {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_LOCATION);
+
+            return;
+        }
+        else{
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        // Got last known location. In some rare situations this can be null.
+                        if (location != null) {
+
+                            Log.i("hgh", "Coordinates: " + location.getLatitude() + " " + location.getLongitude());
+                            // Logic to handle location object
+                            coordinates = new LatLng(location.getLatitude(), location.getLongitude());
+                            mMap.addMarker(new MarkerOptions().position(coordinates).title("Marker in Sydney"));
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 5));
+
+                        }
+                    }
+                });}
+
     }
 
     protected void changeLocationSettings() {
+
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);
         mLocationRequest.setFastestInterval(5000);
@@ -200,6 +208,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // location requests here.
                 // ...
                 mRequestingLocationUpdates = true;
+                showlocation();
             }
         });
 
@@ -229,9 +238,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onResume() {
         super.onResume();
 
-        if (mRequestingLocationUpdates) {
+
             startLocationUpdates();
-        }
+            showlocation();
+
+
 
     }
 
