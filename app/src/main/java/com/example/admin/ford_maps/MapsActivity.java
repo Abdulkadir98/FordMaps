@@ -3,6 +3,7 @@ package com.example.admin.ford_maps;
 import android.Manifest;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -15,8 +16,11 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 
+import com.facebook.login.LoginManager;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResolvableApiException;
@@ -64,6 +68,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private ArrayList<LatLng> markers = new ArrayList<>();
 
+
+    private Button log_out;
+
     private FusedLocationProviderClient mFusedLocationClient;
     private LatLng coordinates;
     private LocationCallback mLocationCallback;
@@ -84,6 +91,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        log_out = findViewById(R.id.log_out_button);
+        log_out.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LoginManager.getInstance().logOut();
+                Intent loginIntent = new Intent(MapsActivity.this, FacebookLoginActivity.class);
+                startActivity(loginIntent);
+            }
+        });
 
 
         final PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
