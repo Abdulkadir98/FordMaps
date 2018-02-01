@@ -46,8 +46,11 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONObject;
 
@@ -65,8 +68,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         GoogleApiClient.ConnectionCallbacks,
         LocationListener {
 
+    private static final String TAG = MapsActivity.class.getSimpleName();
     private GoogleMap mMap;
     private ArrayList<LatLng> markers = new ArrayList<>();
+    private ArrayList<LatLng> friendsMarkers = new ArrayList<>();
 
 
     private Button log_out;
@@ -78,6 +83,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //Firebase instance variables
     private DatabaseReference mFirebaseDatabase;
+
     private Fragment place_autocomplete_fragment;
     private EditText enter_destination;
 
@@ -91,6 +97,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(MapsActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_ACCESS_LOCATION);
+            return;
+
+        }
 
         log_out = findViewById(R.id.log_out_button);
         log_out.setOnClickListener(new View.OnClickListener() {
@@ -259,7 +280,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_ACCESS_LOCATION:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if ( grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     changeLocationSettings();
                 } else {
                     Log.i("denied", "sdssd");
@@ -283,8 +304,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             ActivityCompat.requestPermissions(MapsActivity.this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     MY_PERMISSIONS_REQUEST_ACCESS_LOCATION);
-
             return;
+
         }
         else{
         mFusedLocationClient.getLastLocation()
@@ -301,12 +322,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 15));
                             Log.i("maps", "called");
 
+                            ValueEventListener friendsListener = new ValueEventListener() {
+                                @Override
+                                public void onDataChange(DataSnapshot dataSnapshot) {
+                                    // Get Post object and use the values to update the UI
+                                    for(DataSnapshot postSnapshot: dataSnapshot.getChildren()){
+                                        Friend friend = postSnapshot.getValue(Friend.class);
+                                        Log.d(TAG, "friend id: "+friend.toString());
+
+                                    }
+
+                                    // ...
+                                }
+
+                                @Override
+                                public void onCancelled(DatabaseError databaseError) {
+                                    // Getting Post failed, log a message
+                                    Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
+                                    // ...
+                                }
+                            };
+                            String userID =  Utils.getAccessTokenUserID(MapsActivity.this);
+
+                            mFirebaseDatabase.child("users").addValueEventListener(friendsListener);
+
                             if(markers.size() == 0){
                                 markers.add(coordinates);
                                 createMarkers();
                             }
 
-                            String userID =  Utils.getAccessTokenUserID(MapsActivity.this);
 
                             mFirebaseDatabase.child("users").child(userID).child("latitude")
                                     .setValue(location.getLatitude());
@@ -338,6 +382,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // All location settings are satisfied. The client can initialize
                 // location requests here.
                 // ...
+                showLocation();
+
 
             }
         });
@@ -409,6 +455,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void createMarkers() {
         mMap.clear();
         for(int i=0; i<markers.size(); i++){
+            mMap.addMarker(new MarkerOptions()
+                    .position(markers.get(i))
+                    .anchor(0.5f, 0.5f));
+
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(i), 15));
+
+        }
+        for(int i=0; i<friendsMarkers.size(); i++){
             mMap.addMarker(new MarkerOptions()
                     .position(markers.get(i))
                     .anchor(0.5f, 0.5f));
@@ -601,5 +655,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d("onPostExecute","without Polylines drawn");
             }
         }
+    }
+
+    private void getFriends(){
+
     }
 }
