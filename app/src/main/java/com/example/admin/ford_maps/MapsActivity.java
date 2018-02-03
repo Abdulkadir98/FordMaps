@@ -65,6 +65,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
@@ -75,7 +76,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ArrayList<LatLng> markers = new ArrayList<>();
     private ArrayList<LatLng> friendsMarkersPosition = new ArrayList<>();
     private ArrayList<Marker> friendsMarkers = new ArrayList<>();
-
+    private Map<String, LatLng> friendLatLngMap = new HashMap<>();
 
     private Button log_out;
     private CheckBox isFacebookfriendsChecked;
@@ -346,6 +347,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         Log.d(TAG, "Friend id:"+friendsID.toString());
                                     }
 
+
                                     ValueEventListener friendObjectListener = new ValueEventListener() {
                                         @Override
                                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -355,8 +357,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             double latitude = friend.getLatitude();
                                             double longitutde = friend.getLongitude();
 
-                                            friendsMarkersPosition.add(new LatLng(latitude, longitutde));
+                                            friendLatLngMap.put(friend.getUsername(), new LatLng(latitude, longitutde));
+                                            //friendsMarkersPosition.add(new LatLng(latitude, longitutde));
 
+                                            createMarkers();
                                             Log.d(TAG, "Friend: "+friends.get(0).toString());
                                         }
 
@@ -371,6 +375,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         mFirebaseDatabase.child("users").child(friend).addValueEventListener(friendObjectListener);
 
                                     }
+
                                 }
 
                                 @Override
@@ -502,17 +507,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         if (isFacebookfriendsChecked.isChecked()){
-            for(int i=0; i<friendsMarkersPosition.size(); i++){
+            for(LatLng value: friendLatLngMap.values()){
                 friendsMarkers.add(mMap.addMarker(new MarkerOptions()
-                        .position(friendsMarkersPosition.get(i))
+                        .position(value)
                         .anchor(0.5f, 0.5f)));
 
 
             }
-        }else{
-                for (int i=0; i<friendsMarkersPosition.size(); i++){
-                    friendsMarkers.get(i).setVisible(false);
-                }
         }
 
         // Checks, whether start and end locations are captured
