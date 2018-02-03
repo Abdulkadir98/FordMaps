@@ -1,17 +1,19 @@
 package com.example.admin.ford_maps;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 
 import com.facebook.AccessToken;
 import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
-import com.facebook.login.LoginManager;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -35,98 +37,118 @@ public class MainActivity extends AppCompatActivity {
         mDatabase = FirebaseDatabase.getInstance().getReference();
 
 
-        // If MainActivity is reached without the user being logged in, redirect to the Login
-        // Activity
-        if (AccessToken.getCurrentAccessToken() == null) {
-            Intent loginIntent = new Intent(MainActivity.this, FacebookLoginActivity.class);
-            startActivity(loginIntent);
-        }
-        else
-        {
-            final AccessToken accessToken = AccessToken.getCurrentAccessToken();
-
-            //Storing access token
-            PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString("ACCESS_TOKEN_USERID", accessToken.getUserId()).apply();
-
-            Log.i(TAG, "user id: "+accessToken.getUserId().toString());
-
-           GraphRequest request =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"/friends",
-                   new GraphRequest.Callback() {
-                       @Override
-                       public void onCompleted(GraphResponse response) {
-
-                           try {
-                               JSONObject responseObject = new JSONObject(response.getRawResponse());
-                               JSONArray friendsArray = responseObject.getJSONArray("data");
-
-
-
-                               ArrayList<String> friendsList = new ArrayList<String>();
-                               if (friendsArray != null) {
-                                   for (int i=0;i<friendsArray.length();i++){
-                                       friendsList.add(friendsArray.getJSONObject(i).getString("id"));
-                                   }
-                               }
-
-
-
-                               mDatabase.child("users").child(accessToken.getUserId().toString()).child("friends").setValue(friendsList);
-
-
-
-                           } catch (JSONException e) {
-                               e.printStackTrace();
-                           }
-
-
-
-                           Log.i(TAG, "Response: "+response.getRawResponse());
-                       }
-                   });
-
-            request.executeAsync();
-
-            GraphRequest request_for_name =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"?fields=name",
-                    new GraphRequest.Callback() {
-                        @Override
-                        public void onCompleted(GraphResponse response) {
-                            Log.i(TAG, "Response: "+response.toString());
-
-                            try {
-                                JSONObject responseObject = new JSONObject(response.getRawResponse());
-                                name = responseObject.getString("name");
-                                mDatabase.child("users").child(accessToken.getUserId().toString()).child("username").setValue(name);
-
-                                Log.i(TAG, "Name: "+name);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-
-                            Log.i(TAG, "Response: "+response.toString());
+        if (!isNetworkAvailable()){
+            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+            alertDialog.setTitle("Alert");
+            alertDialog.setMessage("No Internet Connection");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Refresh",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            dialog.dismiss();
+                            finish();
                         }
                     });
-
-            request_for_name.executeAsync();
+            alertDialog.show();
         }
 
-        Button logout = findViewById(R.id.logout);
-        logout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                LoginManager.getInstance().logOut();
+
+        else{
+            // If MainActivity is reached without the user being logged in, redirect to the Login
+            // Activity
+            if (AccessToken.getCurrentAccessToken() == null) {
                 Intent loginIntent = new Intent(MainActivity.this, FacebookLoginActivity.class);
                 startActivity(loginIntent);
             }
-        });
-        Button goToMaps = findViewById(R.id.goToMaps);
-        goToMaps.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent loginIntent = new Intent(MainActivity.this, MapsActivity.class);
-                startActivity(loginIntent);
+            else
+            {
+                final AccessToken accessToken = AccessToken.getCurrentAccessToken();
+
+                //Storing access token
+                PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString("ACCESS_TOKEN_USERID", accessToken.getUserId()).apply();
+
+                Log.i(TAG, "user id: "+accessToken.getUserId().toString());
+
+                GraphRequest request =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"/friends",
+                        new GraphRequest.Callback() {
+                            @Override
+                            public void onCompleted(GraphResponse response) {
+
+                                try {
+                                    JSONObject responseObject = new JSONObject(response.getRawResponse());
+                                    JSONArray friendsArray = responseObject.getJSONArray("data");
+
+
+
+                                    ArrayList<String> friendsList = new ArrayList<String>();
+                                    if (friendsArray != null) {
+                                        for (int i=0;i<friendsArray.length();i++){
+                                            friendsList.add(friendsArray.getJSONObject(i).getString("id"));
+                                        }
+                                    }
+
+
+
+                                    mDatabase.child("users").child(accessToken.getUserId().toString()).child("friends").setValue(friendsList);
+
+                                    GraphRequest request_for_name =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"?fields=name",
+                                            new GraphRequest.Callback() {
+                                                @Override
+                                                public void onCompleted(GraphResponse response) {
+                                                    Log.i(TAG, "Response: "+response.toString());
+
+                                                    try {
+                                                        JSONObject responseObject = new JSONObject(response.getRawResponse());
+                                                        name = responseObject.getString("name");
+                                                        mDatabase.child("users").child(accessToken.getUserId().toString()).child("username").setValue(name);
+
+                                                        Log.i(TAG, "Name: "+name);
+
+                                                        Intent intent = new Intent(MainActivity.this, MapsActivity.class);
+                                                        startActivity(intent);
+                                                        finish();
+
+                                                    } catch (JSONException e) {
+                                                        e.printStackTrace();
+                                                    }
+
+                                                    Log.i(TAG, "Response: "+response.toString());
+                                                }
+                                            });
+
+                                    request_for_name.executeAsync();
+
+
+
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+
+
+
+                                Log.i(TAG, "Response: "+response.getRawResponse());
+                            }
+                        });
+
+                request.executeAsync();
+
+
+
             }
-        });
+        }
 
 
+
+
+
+
+
+    }
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 }
