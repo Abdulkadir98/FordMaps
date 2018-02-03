@@ -18,6 +18,7 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 
 import com.facebook.login.LoginManager;
@@ -41,6 +42,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -71,10 +73,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String TAG = MapsActivity.class.getSimpleName();
     private GoogleMap mMap;
     private ArrayList<LatLng> markers = new ArrayList<>();
-    private ArrayList<LatLng> friendsMarkers = new ArrayList<>();
+    private ArrayList<LatLng> friendsMarkersPosition = new ArrayList<>();
+    private ArrayList<Marker> friendsMarkers = new ArrayList<>();
 
 
     private Button log_out;
+    private CheckBox isFacebookfriendsChecked;
+    private CheckBox isRestaurantsChecked;
 
     private FusedLocationProviderClient mFusedLocationClient;
     private LatLng coordinates;
@@ -114,6 +119,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         log_out = findViewById(R.id.log_out_button);
+        isFacebookfriendsChecked = findViewById(R.id.fb_friends);
+        isRestaurantsChecked = findViewById(R.id.restraunts_near_you);
+
         log_out.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -171,6 +179,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.i("blah", "An error occurred: " + status);
             }
         });
+
 
 
         mFirebaseDatabase = FirebaseDatabase.getInstance().getReference();
@@ -322,17 +331,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 15));
                             Log.i("maps", "called");
 
+                            final ArrayList<String> friendsID = new ArrayList<>();
+                            final ArrayList<Friend> friends = new ArrayList<>();
+
+
+
                             ValueEventListener friendsListener = new ValueEventListener() {
                                 @Override
                                 public void onDataChange(DataSnapshot dataSnapshot) {
                                     // Get Post object and use the values to update the UI
                                     for(DataSnapshot postSnapshot: dataSnapshot.getChildren()){
-                                        Friend friend = postSnapshot.getValue(Friend.class);
-                                        Log.d(TAG, "friend id: "+friend.toString());
+                                        friendsID.add(postSnapshot.getValue(String.class));
 
+                                        Log.d(TAG, "Friend id:"+friendsID.toString());
                                     }
 
-                                    // ...
+                                    ValueEventListener friendObjectListener = new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(DataSnapshot dataSnapshot) {
+
+                                            Friend friend = dataSnapshot.getValue(Friend.class);
+                                            friends.add(friend);
+                                            double latitude = friend.getLatitude();
+                                            double longitutde = friend.getLongitude();
+
+                                            friendsMarkersPosition.add(new LatLng(latitude, longitutde));
+
+                                            Log.d(TAG, "Friend: "+friends.get(0).toString());
+                                        }
+
+                                        @Override
+                                        public void onCancelled(DatabaseError databaseError) {
+                                            Log.v(TAG, "loadPost:onCancelled", databaseError.toException());
+                                        }
+                                    };
+
+                                    //Getting Friends' objects and storing in "friends" ArrayList
+                                    for (String friend : friendsID){
+                                        mFirebaseDatabase.child("users").child(friend).addValueEventListener(friendObjectListener);
+
+                                    }
                                 }
 
                                 @Override
@@ -344,7 +382,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             };
                             String userID =  Utils.getAccessTokenUserID(MapsActivity.this);
 
-                            mFirebaseDatabase.child("users").addValueEventListener(friendsListener);
+                            mFirebaseDatabase.child("users").child(userID).child("friends").addValueEventListener(friendsListener);
 
                             if(markers.size() == 0){
                                 markers.add(coordinates);
@@ -462,14 +500,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(i), 15));
 
         }
-        for(int i=0; i<friendsMarkers.size(); i++){
-            mMap.addMarker(new MarkerOptions()
-                    .position(markers.get(i))
-                    .anchor(0.5f, 0.5f));
 
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(i), 15));
+        if (isFacebookfriendsChecked.isChecked()){
+            for(int i=0; i<friendsMarkersPosition.size(); i++){
+                friendsMarkers.add(mMap.addMarker(new MarkerOptions()
+                        .position(friendsMarkersPosition.get(i))
+                        .anchor(0.5f, 0.5f)));
 
+
+            }
+        }else{
+                for (int i=0; i<friendsMarkersPosition.size(); i++){
+                    friendsMarkers.get(i).setVisible(false);
+                }
         }
+
         // Checks, whether start and end locations are captured
         if (markers.size() >= 2) {
             LatLng origin = markers.get(0);
@@ -488,6 +533,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
+    }
+    public void onCheckboxClicked(View view) {
+        // Is the view now checked?
+        boolean checked = ((CheckBox) view).isChecked();
+
+        // Check which checkbox was clicked
+        switch(view.getId()) {
+            case R.id.fb_friends:
+                if (checked){
+                    createMarkers();
+                }
+                // Put some meat on the sandwich
+            else
+                // Remove the meat
+                createMarkers();
+                break;
+            case R.id.restraunts_near_you:
+                if (checked){
+
+                }
+                // Cheese me
+            else
+                // I'm lactose intolerant
+                break;
+            // TODO: Veggie sandwich
+        }
     }
     private String getUrl(LatLng origin, LatLng dest) {
 
