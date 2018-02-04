@@ -20,6 +20,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.facebook.login.LoginManager;
 import com.google.android.gms.common.ConnectionResult;
@@ -516,6 +517,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
+        if (isRestaurantsChecked.isChecked()){
+            String url = Utils.getNearbyRestaurantUrl(markers.get(0), 500);
+            Object[] DataTransfer = new Object[2];
+            DataTransfer[0] = mMap;
+            DataTransfer[1] = url;
+            Log.d("onClick", url);
+            GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData(MapsActivity.this);
+            getNearbyPlacesData.execute(DataTransfer);
+            Toast.makeText(MapsActivity.this,"Nearby Restaurants", Toast.LENGTH_LONG).show();
+        }
+
         // Checks, whether start and end locations are captured
         if (markers.size() >= 2) {
             LatLng origin = markers.get(0);
@@ -552,11 +564,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
             case R.id.restraunts_near_you:
                 if (checked){
-
+                    createMarkers();
                 }
                 // Cheese me
             else
                 // I'm lactose intolerant
+                createMarkers();
                 break;
             // TODO: Veggie sandwich
         }
@@ -729,7 +742,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void getFriends(){
 
-    }
 }
