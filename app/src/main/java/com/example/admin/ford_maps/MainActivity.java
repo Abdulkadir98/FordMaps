@@ -29,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     String name;
 
     public static final String TAG = MainActivity.class.getSimpleName();
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         if (!isNetworkAvailable()){
             AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
             alertDialog.setTitle("Alert");
+            alertDialog.setCancelable(false);
             alertDialog.setMessage("No Internet Connection");
             alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Refresh",
                     new DialogInterface.OnClickListener() {
@@ -57,9 +60,12 @@ public class MainActivity extends AppCompatActivity {
         else{
             // If MainActivity is reached without the user being logged in, redirect to the Login
             // Activity
+            Log.e(TAG, "Inside else statement" );
             if (AccessToken.getCurrentAccessToken() == null) {
+
                 Intent loginIntent = new Intent(MainActivity.this, FacebookLoginActivity.class);
                 startActivity(loginIntent);
+                finish();
             }
             else
             {
@@ -107,7 +113,6 @@ public class MainActivity extends AppCompatActivity {
 
                                                         Intent intent = new Intent(MainActivity.this, MapsActivity.class);
                                                         startActivity(intent);
-                                                        finish();
 
                                                     } catch (JSONException e) {
                                                         e.printStackTrace();
@@ -140,15 +145,82 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-
-
-
     }
     private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    private void makeFacebookRequest(){
+        final AccessToken accessToken = AccessToken.getCurrentAccessToken();
+
+        //Storing access token
+        PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString("ACCESS_TOKEN_USERID", accessToken.getUserId()).apply();
+
+        Log.i(TAG, "user id: "+accessToken.getUserId().toString());
+
+        GraphRequest request =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"/friends",
+                new GraphRequest.Callback() {
+                    @Override
+                    public void onCompleted(GraphResponse response) {
+
+                        try {
+                            JSONObject responseObject = new JSONObject(response.getRawResponse());
+                            JSONArray friendsArray = responseObject.getJSONArray("data");
+
+
+
+                            ArrayList<String> friendsList = new ArrayList<String>();
+                            if (friendsArray != null) {
+                                for (int i=0;i<friendsArray.length();i++){
+                                    friendsList.add(friendsArray.getJSONObject(i).getString("id"));
+                                }
+                            }
+
+
+
+                            mDatabase.child("users").child(accessToken.getUserId().toString()).child("friends").setValue(friendsList);
+
+                            GraphRequest request_for_name =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"?fields=name",
+                                    new GraphRequest.Callback() {
+                                        @Override
+                                        public void onCompleted(GraphResponse response) {
+                                            Log.i(TAG, "Response: "+response.toString());
+
+                                            try {
+                                                JSONObject responseObject = new JSONObject(response.getRawResponse());
+                                                name = responseObject.getString("name");
+                                                mDatabase.child("users").child(accessToken.getUserId().toString()).child("username").setValue(name);
+
+                                                Log.i(TAG, "Name: "+name);
+
+                                                Intent intent = new Intent(MainActivity.this, MapsActivity.class);
+                                                startActivity(intent);
+
+                                            } catch (JSONException e) {
+                                                e.printStackTrace();
+                                            }
+
+                                            Log.i(TAG, "Response: "+response.toString());
+                                        }
+                                    });
+
+                            request_for_name.executeAsync();
+
+
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+
+
+                        Log.i(TAG, "Response: "+response.getRawResponse());
+                    }
+                });
+
+        request.executeAsync();
     }
 }

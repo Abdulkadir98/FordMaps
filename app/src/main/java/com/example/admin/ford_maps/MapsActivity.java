@@ -3,6 +3,7 @@ package com.example.admin.ford_maps;
 import android.Manifest;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
@@ -11,8 +12,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -66,6 +70,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener,
@@ -78,6 +83,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ArrayList<LatLng> friendsMarkersPosition = new ArrayList<>();
     private ArrayList<Marker> friendsMarkers = new ArrayList<>();
     private Map<String, LatLng> friendLatLngMap = new HashMap<>();
+    private FloatingActionButton mic;
 
     private Button log_out;
     private CheckBox isFacebookfriendsChecked;
@@ -123,6 +129,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         log_out = findViewById(R.id.log_out_button);
         isFacebookfriendsChecked = findViewById(R.id.fb_friends);
         isRestaurantsChecked = findViewById(R.id.restraunts_near_you);
+        mic = findViewById(R.id.mic);
+
+        mic.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+                        getString(R.string.speech_prompt));
+                try {
+                    startActivityForResult(intent, 100);
+                } catch (ActivityNotFoundException a) {
+                    Toast.makeText(getApplicationContext(),
+                            getString(R.string.speech_not_supported),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
         log_out.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -326,7 +352,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         // Got last known location. In some rare situations this can be null.
                         if (location != null) {
 
-                            Log.i("hgh", "Coordinates: " + location.getLatitude() + " " + location.getLongitude());
+                            Log.i("maps", "Coordinates: " + location.getLatitude() + " " + location.getLongitude());
                             // Logic to handle location object
                             coordinates = new LatLng(location.getLatitude(), location.getLongitude());
 //                            mMap.addMarker(new MarkerOptions().position(coordinates).title("Marker in Sydney"));
@@ -444,6 +470,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         ResolvableApiException resolvable = (ResolvableApiException) e;
                         resolvable.startResolutionForResult(MapsActivity.this,
                                 REQUEST_CHECK_SETTINGS);
+
+
                     } catch (IntentSender.SendIntentException sendEx) {
                         // Ignore the error.
                     }
@@ -740,6 +768,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d("onPostExecute","without Polylines drawn");
             }
         }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode) {
+            case 100: {
+                if (resultCode == RESULT_OK && null != data) {
+
+                    ArrayList<String> result = data
+                            .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    Toast.makeText(MapsActivity.this, result.get(0),Toast.LENGTH_LONG).show();
+                    if (result.get(0).equals("log out")||result.get(0).equals("logout")||result.get(0).equals("log out from facebook"))
+                    {
+                        LoginManager.getInstance().logOut();
+                        Intent loginIntent = new Intent(MapsActivity.this, FacebookLoginActivity.class);
+                        startActivity(loginIntent);
+                    }
+                    else if (result.get(0).equals("show Facebook friends")){
+                        isFacebookfriendsChecked.setChecked(true);
+                    }
+                    else if (result.get(0).equals("show nearby restaurants")){
+                        isRestaurantsChecked.setChecked(true);
+                    }
+                    else Toast.makeText(getApplicationContext(), "Command not found.",Toast.LENGTH_SHORT).show();
+                }
+                break;
+            }
+            case REQUEST_CHECK_SETTINGS : {
+                if(resultCode == RESULT_OK && null != data){
+                   //simulateLongRunningWork();
+                    Toast.makeText(getApplicationContext(),"Refresh app", Toast.LENGTH_SHORT).show();
+
+                }
+            }
+
+        }
+    }
+    private void simulateLongRunningWork(){
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                startActivity(new Intent(getApplicationContext(), MapsActivity.class));
+                finish();
+            }
+        }, 4000);
     }
 
 
