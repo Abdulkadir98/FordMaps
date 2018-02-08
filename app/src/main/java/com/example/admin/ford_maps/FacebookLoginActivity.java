@@ -37,7 +37,7 @@ public class FacebookLoginActivity extends AppCompatActivity {
 
 
         loginButton = (LoginButton) findViewById(R.id.login_button);
-        loginButton.setReadPermissions("email", "user_friends","user_location");
+        loginButton.setReadPermissions("picture.type(medium)","email", "user_friends","user_location");
 
         // Callback registration
         loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {

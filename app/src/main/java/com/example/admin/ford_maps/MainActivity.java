@@ -10,6 +10,7 @@ import android.preference.PreferenceManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.facebook.AccessToken;
 import com.facebook.GraphRequest;
@@ -60,86 +61,15 @@ public class MainActivity extends AppCompatActivity {
         else{
             // If MainActivity is reached without the user being logged in, redirect to the Login
             // Activity
-            Log.e(TAG, "Inside else statement" );
             if (AccessToken.getCurrentAccessToken() == null) {
 
                 Intent loginIntent = new Intent(MainActivity.this, FacebookLoginActivity.class);
-                startActivity(loginIntent);
-                finish();
+                startActivityForResult(loginIntent, 200);
+
             }
             else
             {
-                final AccessToken accessToken = AccessToken.getCurrentAccessToken();
-
-                //Storing access token
-                PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString("ACCESS_TOKEN_USERID", accessToken.getUserId()).apply();
-
-                Log.i(TAG, "user id: "+accessToken.getUserId().toString());
-
-                GraphRequest request =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"/friends",
-                        new GraphRequest.Callback() {
-                            @Override
-                            public void onCompleted(GraphResponse response) {
-
-                                try {
-                                    JSONObject responseObject = new JSONObject(response.getRawResponse());
-                                    JSONArray friendsArray = responseObject.getJSONArray("data");
-
-
-
-                                    ArrayList<String> friendsList = new ArrayList<String>();
-                                    if (friendsArray != null) {
-                                        for (int i=0;i<friendsArray.length();i++){
-                                            friendsList.add(friendsArray.getJSONObject(i).getString("id"));
-                                        }
-                                    }
-
-
-
-                                    mDatabase.child("users").child(accessToken.getUserId().toString()).child("friends").setValue(friendsList);
-
-                                    GraphRequest request_for_name =  GraphRequest.newGraphPathRequest(accessToken, "/"+accessToken.getUserId().toString()+"?fields=name",
-                                            new GraphRequest.Callback() {
-                                                @Override
-                                                public void onCompleted(GraphResponse response) {
-                                                    Log.i(TAG, "Response: "+response.toString());
-
-                                                    try {
-                                                        JSONObject responseObject = new JSONObject(response.getRawResponse());
-                                                        name = responseObject.getString("name");
-                                                        mDatabase.child("users").child(accessToken.getUserId().toString()).child("username").setValue(name);
-
-                                                        Log.i(TAG, "Name: "+name);
-
-                                                        Intent intent = new Intent(MainActivity.this, MapsActivity.class);
-                                                        startActivity(intent);
-
-                                                    } catch (JSONException e) {
-                                                        e.printStackTrace();
-                                                    }
-
-                                                    Log.i(TAG, "Response: "+response.toString());
-                                                }
-                                            });
-
-                                    request_for_name.executeAsync();
-
-
-
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-
-
-
-                                Log.i(TAG, "Response: "+response.getRawResponse());
-                            }
-                        });
-
-                request.executeAsync();
-
-
-
+                makeFacebookRequest();
             }
         }
 
@@ -222,5 +152,17 @@ public class MainActivity extends AppCompatActivity {
                 });
 
         request.executeAsync();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == 200 && resultCode == RESULT_OK){
+            makeFacebookRequest();
+        }
+        else{
+            Toast.makeText(getApplicationContext(), "Error logging in.", Toast.LENGTH_SHORT).show();
+        }
     }
 }

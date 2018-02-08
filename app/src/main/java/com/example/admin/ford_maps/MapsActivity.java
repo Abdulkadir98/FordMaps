@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -26,6 +27,9 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.facebook.AccessToken;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
 import com.facebook.login.LoginManager;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -46,6 +50,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -58,7 +63,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.koushikdutta.ion.Ion;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -72,6 +79,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
@@ -82,7 +90,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ArrayList<LatLng> markers = new ArrayList<>();
     private ArrayList<LatLng> friendsMarkersPosition = new ArrayList<>();
     private ArrayList<Marker> friendsMarkers = new ArrayList<>();
-    private Map<String, LatLng> friendLatLngMap = new HashMap<>();
+    private Map<String, FriendInfo> friendLatLngMap = new HashMap<>();
     private FloatingActionButton mic;
 
     private Button log_out;
@@ -104,6 +112,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_LOCATION = 1;
     private static final int REQUEST_CHECK_SETTINGS = 2;
+    private ArrayList<String> friendsID;
+    private String profilePictureUrl;
 
 
     @Override
@@ -238,6 +248,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with location data
                     // ...
+                    coordinates=new LatLng(location.getLatitude(),location.getLongitude());
+                    if(markers.size() == 0){
+                        markers.add(coordinates);
+                        createMarkers();
+                    }
+
 //                    LatLng latLng= new LatLng(location.getLatitude(),location.getLongitude());
 //                    mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in Sydney"));
 //                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
@@ -359,7 +375,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinates, 15));
                             Log.i("maps", "called");
 
-                            final ArrayList<String> friendsID = new ArrayList<>();
+                             friendsID = new ArrayList<>();
                             final ArrayList<Friend> friends = new ArrayList<>();
 
 
@@ -384,7 +400,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             double latitude = friend.getLatitude();
                                             double longitutde = friend.getLongitude();
 
-                                            friendLatLngMap.put(friend.getUsername(), new LatLng(latitude, longitutde));
+                                            FriendInfo friendInfo = new FriendInfo();
+                                            friendInfo.setLocation(new LatLng(latitude, longitutde));
+                                            getFacebookProfilePicture(dataSnapshot.getKey(), friendInfo);
+
+
+                                            friendLatLngMap.put(friend.getUsername(), friendInfo);
                                             //friendsMarkersPosition.add(new LatLng(latitude, longitutde));
 
                                             createMarkers();
@@ -398,9 +419,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     };
 
                                     //Getting Friends' objects and storing in "friends" ArrayList
+
                                     for (String friend : friendsID){
                                         mFirebaseDatabase.child("users").child(friend).addValueEventListener(friendObjectListener);
-
                                     }
 
                                 }
@@ -536,10 +557,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         if (isFacebookfriendsChecked.isChecked()){
-            for(LatLng value: friendLatLngMap.values()){
-                friendsMarkers.add(mMap.addMarker(new MarkerOptions()
-                        .position(value)
-                        .anchor(0.5f, 0.5f)));
+
+
+            for(FriendInfo value: friendLatLngMap.values()){
+                try {
+                    Log.i(TAG, "url: "+value.getProfilePictureUrl());
+                    Bitmap bmImg = Ion.with(this)
+                            .load(value.getProfilePictureUrl()).asBitmap().get();
+                    friendsMarkers.add(mMap.addMarker(new MarkerOptions()
+                            .position(value.getLocation())
+                            .icon(BitmapDescriptorFactory.fromBitmap(bmImg))
+                            .anchor(0.5f, 0.5f)));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+
+
 
 
             }
@@ -816,5 +851,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }, 4000);
     }
 
+    private void getFacebookProfilePicture(final String friendID, final FriendInfo friendInfo){
+
+        final AccessToken accessToken = AccessToken.getCurrentAccessToken();
+        GraphRequest request = GraphRequest.newGraphPathRequest(accessToken, "/" + friendID + "/picture?type=normal&redirect=false",
+                new GraphRequest.Callback() {
+                    @Override
+                    public void onCompleted(GraphResponse response) {
+                        Log.i(TAG, "Response: "+response.getRawResponse());
+
+                        try {
+                            JSONObject jsonObject = new JSONObject(response.getRawResponse());
+                            JSONObject dataObject = jsonObject.getJSONObject("data");
+
+                             profilePictureUrl = dataObject.getString("url");
+                             profilePictureUrl.replaceAll("\\\\", "");
+                            Log.i(TAG, "profile pic url: "+ profilePictureUrl);
+
+                            friendInfo.setProfilePictureUrl(profilePictureUrl);
+
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+        request.executeAsync();
+
+    }
 
 }
