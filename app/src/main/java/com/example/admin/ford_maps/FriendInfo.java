@@ -1,5 +1,7 @@
 package com.example.admin.ford_maps;
 
+import android.graphics.Bitmap;
+
 import com.google.android.gms.maps.model.LatLng;
 
 /**
@@ -8,29 +10,30 @@ import com.google.android.gms.maps.model.LatLng;
 
 public class FriendInfo {
     private LatLng location;
-    private String profilePictureUrl;
+    private Bitmap profilePicture;
+
 
     public FriendInfo() {
     }
 
-    public FriendInfo(LatLng location, String profilePictureUrl) {
+    public FriendInfo(LatLng location, Bitmap profilePictureUrl) {
         this.location = location;
-        this.profilePictureUrl = profilePictureUrl;
+        this.profilePicture = profilePictureUrl;
     }
 
     public LatLng getLocation() {
         return location;
     }
 
-    public String getProfilePictureUrl() {
-        return profilePictureUrl;
+    public Bitmap getProfilePicture() {
+        return profilePicture;
     }
 
     public void setLocation(LatLng location) {
         this.location = location;
     }
 
-    public void setProfilePictureUrl(String profilePictureUrl) {
-        this.profilePictureUrl = profilePictureUrl;
+    public void setProfilePicture(Bitmap profilePicture) {
+        this.profilePicture = profilePicture;
     }
 }

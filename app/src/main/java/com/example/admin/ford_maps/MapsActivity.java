@@ -7,7 +7,6 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -27,9 +26,6 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.facebook.AccessToken;
-import com.facebook.GraphRequest;
-import com.facebook.GraphResponse;
 import com.facebook.login.LoginManager;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -63,9 +59,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.koushikdutta.ion.Ion;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -79,7 +73,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
@@ -140,6 +133,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         isFacebookfriendsChecked = findViewById(R.id.fb_friends);
         isRestaurantsChecked = findViewById(R.id.restraunts_near_you);
         mic = findViewById(R.id.mic);
+
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(500);
+        mLocationRequest.setFastestInterval(400);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                for (Location location : locationResult.getLocations()) {
+                    // Update UI with location data
+                    // ...
+                    coordinates=new LatLng(location.getLatitude(),location.getLongitude());
+
+                    Log.i(TAG, "Location: "+coordinates);
+                    mFirebaseDatabase.child("users").child(Utils.getAccessTokenUserID(MapsActivity.this)).child("latitude")
+                            .setValue(coordinates.latitude);
+                    mFirebaseDatabase.child("users").child(Utils.getAccessTokenUserID(MapsActivity.this)).child("longitude")
+                            .setValue(coordinates.longitude);
+
+                        if (markers.size()>0)
+                        {
+                            markers.set(0,coordinates);
+                            createMarkers(false);
+                        }
+                        else
+                        {
+                            markers.add(coordinates);
+                            createMarkers(true);
+                        }
+                        Log.d("current Location",markers.toString());
+
+
+
+//                    LatLng latLng= new LatLng(location.getLatitude(),location.getLongitude());
+//                    mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in Sydney"));
+//                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+
+
+                }
+            };
+        };
 
         mic.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -207,7 +242,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                    markers.add(placeCoordinates);
                }
 
-               createMarkers();
+               createMarkers(false);
 
             }
 
@@ -242,26 +277,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         else{
             changeLocationSettings();
         }
-        mLocationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                for (Location location : locationResult.getLocations()) {
-                    // Update UI with location data
-                    // ...
-                    coordinates=new LatLng(location.getLatitude(),location.getLongitude());
-                    if(markers.size() == 0){
-                        markers.add(coordinates);
-                        createMarkers();
-                    }
 
-//                    LatLng latLng= new LatLng(location.getLatitude(),location.getLongitude());
-//                    mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in Sydney"));
-//                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
-
-
-                }
-            };
-        };
 
 
 
@@ -408,7 +424,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                             friendLatLngMap.put(friend.getUsername(), friendInfo);
                                             //friendsMarkersPosition.add(new LatLng(latitude, longitutde));
 
-                                            createMarkers();
+                                            createMarkers(false);
                                             Log.d(TAG, "Friend: "+friends.get(0).toString());
                                         }
 
@@ -439,7 +455,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                             if(markers.size() == 0){
                                 markers.add(coordinates);
-                                createMarkers();
+                                createMarkers(false);
                             }
 
 
@@ -455,11 +471,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     protected void changeLocationSettings() {
-
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
                 .addLocationRequest(mLocationRequest);
@@ -545,34 +556,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //            return super.onOptionsItemSelected(item);
 //    }
 
-    protected void createMarkers() {
+    protected void createMarkers( boolean first) {
         mMap.clear();
         for(int i=0; i<markers.size(); i++){
             mMap.addMarker(new MarkerOptions()
                     .position(markers.get(i))
                     .anchor(0.5f, 0.5f));
 
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(i), 15));
-
         }
+        if (first)
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(0), 15));
 
         if (isFacebookfriendsChecked.isChecked()){
 
 
-            for(FriendInfo value: friendLatLngMap.values()){
-                try {
-                    Log.i(TAG, "url: "+value.getProfilePictureUrl());
-                    Bitmap bmImg = Ion.with(this)
-                            .load(value.getProfilePictureUrl()).asBitmap().get();
+            for(Map.Entry<String, FriendInfo> entry: friendLatLngMap.entrySet()){
+
+//                    Log.i(TAG, "url: "+value.getProfilePictureUrl());
+//                    Bitmap bmImg = Ion.with(this)
+//                            .load(value.getProfilePictureUrl()).asBitmap().get();
+
+                    String username = entry.getKey();
+                    LatLng location = entry.getValue().getLocation();
                     friendsMarkers.add(mMap.addMarker(new MarkerOptions()
-                            .position(value.getLocation())
-                            .icon(BitmapDescriptorFactory.fromBitmap(bmImg))
+                            .position(location)
+                            .title(username)
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
                             .anchor(0.5f, 0.5f)));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
+
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
+
+
 
 
 
@@ -618,21 +632,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         switch(view.getId()) {
             case R.id.fb_friends:
                 if (checked){
-                    createMarkers();
+                    createMarkers(false);
                 }
                 // Put some meat on the sandwich
             else
                 // Remove the meat
-                createMarkers();
+                createMarkers(false);
                 break;
             case R.id.restraunts_near_you:
                 if (checked){
-                    createMarkers();
+                    createMarkers(false);
                 }
                 // Cheese me
             else
                 // I'm lactose intolerant
-                createMarkers();
+                createMarkers(false);
                 break;
             // TODO: Veggie sandwich
         }
@@ -853,30 +867,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void getFacebookProfilePicture(final String friendID, final FriendInfo friendInfo){
 
-        final AccessToken accessToken = AccessToken.getCurrentAccessToken();
-        GraphRequest request = GraphRequest.newGraphPathRequest(accessToken, "/" + friendID + "/picture?type=normal&redirect=false",
-                new GraphRequest.Callback() {
-                    @Override
-                    public void onCompleted(GraphResponse response) {
-                        Log.i(TAG, "Response: "+response.getRawResponse());
-
-                        try {
-                            JSONObject jsonObject = new JSONObject(response.getRawResponse());
-                            JSONObject dataObject = jsonObject.getJSONObject("data");
-
-                             profilePictureUrl = dataObject.getString("url");
-                             profilePictureUrl.replaceAll("\\\\", "");
-                            Log.i(TAG, "profile pic url: "+ profilePictureUrl);
-
-                            friendInfo.setProfilePictureUrl(profilePictureUrl);
-
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-        request.executeAsync();
+//        final AccessToken accessToken = AccessToken.getCurrentAccessToken();
+//        GraphRequest request = GraphRequest.newGraphPathRequest(accessToken, "/" + friendID + "/picture?type=normal&redirect=false",
+//                new GraphRequest.Callback() {
+//                    @Override
+//                    public void onCompleted(GraphResponse response) {
+//                        Log.i(TAG, "Response: "+response.getRawResponse());
+//
+//                        try {
+//                            JSONObject jsonObject = new JSONObject(response.getRawResponse());
+//                            JSONObject dataObject = jsonObject.getJSONObject("data");
+//
+//                             profilePictureUrl = dataObject.getString("url");
+//                             profilePictureUrl.replaceAll("\\\\", "");
+//                            Log.i(TAG, "profile pic url: "+ profilePictureUrl);
+//
+//                            friendInfo.setProfilePicture(profilePictureUrl);
+//
+//
+//                        } catch (JSONException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                });
+//        request.executeAsync();
 
     }
 
