@@ -72,7 +72,9 @@ public class GetNearbyPlacesData extends AsyncTask<Object, String, String> {
             LatLng latLng = new LatLng(lat, lng);
             markerOptions.position(latLng);
             markerOptions.title(placeName + " : " + vicinity);
-            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(drawableToBitmap(ContextCompat.getDrawable(mContext, R.drawable.ic_restaurant_black_24dp))));
+            markerOptions.icon(BitmapDescriptorFactory.
+                                                fromBitmap(drawableToBitmap(
+                                                ContextCompat.getDrawable(mContext, R.drawable.ic_fast_food_placeholder))));
             mMap.addMarker(markerOptions);
             //move map camera
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));

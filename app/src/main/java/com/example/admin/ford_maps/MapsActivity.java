@@ -7,7 +7,11 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.AsyncTask;
@@ -107,6 +111,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int REQUEST_CHECK_SETTINGS = 2;
     private ArrayList<String> friendsID;
     private String profilePictureUrl;
+
+    private Toast mToast;
+
 
 
     @Override
@@ -556,7 +563,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //            return super.onOptionsItemSelected(item);
 //    }
 
-    protected void createMarkers( boolean first) {
+    protected void createMarkers(boolean first) {
         mMap.clear();
         for(int i=0; i<markers.size(); i++){
             mMap.addMarker(new MarkerOptions()
@@ -581,7 +588,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     friendsMarkers.add(mMap.addMarker(new MarkerOptions()
                             .position(location)
                             .title(username)
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
+                            .icon(BitmapDescriptorFactory.fromBitmap(drawableToBitmap(getResources()
+                                                            .getDrawable(R.drawable.ic_person_map))))
                             .anchor(0.5f, 0.5f)));
 
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
@@ -602,8 +610,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.d("onClick", url);
             GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData(MapsActivity.this);
             getNearbyPlacesData.execute(DataTransfer);
-            Toast.makeText(MapsActivity.this,"Nearby Restaurants", Toast.LENGTH_LONG).show();
-        }
+
+            if(mToast != null){
+                mToast.cancel();
+            }
+
+            mToast =  Toast.makeText(MapsActivity.this,"Nearby Restaurants", Toast.LENGTH_LONG);
+           mToast.show();
+    }
 
         // Checks, whether start and end locations are captured
         if (markers.size() >= 2) {
@@ -817,6 +831,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d("onPostExecute","without Polylines drawn");
             }
         }
+    }
+    public static Bitmap drawableToBitmap (Drawable drawable) {
+        Bitmap bitmap = null;
+
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            if(bitmapDrawable.getBitmap() != null) {
+                return bitmapDrawable.getBitmap();
+            }
+        }
+
+        if(drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0) {
+            bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888); // Single color bitmap will be created of 1x1 pixel
+        } else {
+            bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        }
+
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+        return bitmap;
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
