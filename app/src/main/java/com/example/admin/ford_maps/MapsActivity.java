@@ -85,9 +85,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String TAG = MapsActivity.class.getSimpleName();
     private GoogleMap mMap;
     private ArrayList<LatLng> markers = new ArrayList<>();
-    private ArrayList<LatLng> friendsMarkersPosition = new ArrayList<>();
     private ArrayList<Marker> friendsMarkers = new ArrayList<>();
     private Map<String, FriendInfo> friendLatLngMap = new HashMap<>();
+    private Map<Integer, Marker> userMarkerMap = new HashMap<>();
     private FloatingActionButton mic;
 
     private Button log_out;
@@ -152,13 +152,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 for (Location location : locationResult.getLocations()) {
                     // Update UI with location data
                     // ...
-                    coordinates=new LatLng(location.getLatitude(),location.getLongitude());
+                    coordinates = new LatLng(location.getLatitude(),location.getLongitude());
 
                     Log.i(TAG, "Location: "+coordinates);
                     mFirebaseDatabase.child("users").child(Utils.getAccessTokenUserID(MapsActivity.this)).child("latitude")
                             .setValue(coordinates.latitude);
                     mFirebaseDatabase.child("users").child(Utils.getAccessTokenUserID(MapsActivity.this)).child("longitude")
                             .setValue(coordinates.longitude);
+
 
                         if (markers.size()>0)
                         {
@@ -564,11 +565,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //    }
 
     protected void createMarkers(boolean first) {
-        mMap.clear();
+        //mMap.clear();
+
+        if(!first){
+            if(userMarkerMap.size() > 0){
+                Marker marker = userMarkerMap.get(0);
+                marker.remove();
+                userMarkerMap.remove(1);
+            }
+        }
+
         for(int i=0; i<markers.size(); i++){
-            mMap.addMarker(new MarkerOptions()
+
+            //Marker marker = new MarkerOptions().position(markers.get(i)).anchor(0.5f, 0.5f);
+            Marker marker = mMap.addMarker(new MarkerOptions()
                     .position(markers.get(i))
                     .anchor(0.5f, 0.5f));
+
+
+            userMarkerMap.put(i, marker);
 
         }
         if (first)
@@ -638,8 +653,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (checked){
                     createFriendsMarkers();
                 }
-            else
-                {
+            else {
                     mMap.clear();
                     createMarkers(false);
                 }
@@ -648,10 +662,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (checked){
                     createRestaurantsMarkers();
                 }
-            else
-                mMap.clear();
-                createMarkers(false);
-                break;
+            else {
+                    mMap.clear();
+                    createMarkers(false);
+                    break;
+                }
+
         }
     }
     private String getUrl(LatLng origin, LatLng dest) {
