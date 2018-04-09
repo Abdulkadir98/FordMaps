@@ -574,51 +574,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (first)
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markers.get(0), 15));
 
-        if (isFacebookfriendsChecked.isChecked()){
-
-
-            for(Map.Entry<String, FriendInfo> entry: friendLatLngMap.entrySet()){
-
-//                    Log.i(TAG, "url: "+value.getProfilePictureUrl());
-//                    Bitmap bmImg = Ion.with(this)
-//                            .load(value.getProfilePictureUrl()).asBitmap().get();
-
-                    String username = entry.getKey();
-                    LatLng location = entry.getValue().getLocation();
-                    friendsMarkers.add(mMap.addMarker(new MarkerOptions()
-                            .position(location)
-                            .title(username)
-                            .icon(BitmapDescriptorFactory.fromBitmap(drawableToBitmap(getResources()
-                                                            .getDrawable(R.drawable.ic_person_map))))
-                            .anchor(0.5f, 0.5f)));
-
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
-
-
-
-
-
-
-            }
-        }
-
-        if (isRestaurantsChecked.isChecked()){
-            String url = Utils.getNearbyRestaurantUrl(markers.get(0), 500);
-            Object[] DataTransfer = new Object[2];
-            DataTransfer[0] = mMap;
-            DataTransfer[1] = url;
-            Log.d("onClick", url);
-            GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData(MapsActivity.this);
-            getNearbyPlacesData.execute(DataTransfer);
-
-            if(mToast != null){
-                mToast.cancel();
-            }
-
-            mToast =  Toast.makeText(MapsActivity.this,"Nearby Restaurants", Toast.LENGTH_LONG);
-           mToast.show();
-    }
-
         // Checks, whether start and end locations are captured
         if (markers.size() >= 2) {
             LatLng origin = markers.get(0);
@@ -638,6 +593,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     }
+    void createFriendsMarkers(){
+        for(Map.Entry<String, FriendInfo> entry: friendLatLngMap.entrySet()){
+
+//                    Log.i(TAG, "url: "+value.getProfilePictureUrl());
+//                    Bitmap bmImg = Ion.with(this)
+//                            .load(value.getProfilePictureUrl()).asBitmap().get();
+            String username = entry.getKey();
+            LatLng location = entry.getValue().getLocation();
+            friendsMarkers.add(mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .title(username)
+                    .icon(BitmapDescriptorFactory.fromBitmap(drawableToBitmap(getResources()
+                            .getDrawable(R.drawable.ic_person_map))))
+                    .anchor(0.5f, 0.5f)));
+
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
+            }
+    }
+    void createRestaurantsMarkers()
+    {
+        String url = Utils.getNearbyRestaurantUrl(markers.get(0), 500);
+        Object[] DataTransfer = new Object[2];
+        DataTransfer[0] = mMap;
+        DataTransfer[1] = url;
+        Log.d("onClick", url);
+        GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData(MapsActivity.this);
+        getNearbyPlacesData.execute(DataTransfer);
+
+        if(mToast != null){
+            mToast.cancel();
+        }
+
+        mToast =  Toast.makeText(MapsActivity.this,"Nearby Restaurants", Toast.LENGTH_LONG);
+        mToast.show();
+    }
     public void onCheckboxClicked(View view) {
         // Is the view now checked?
         boolean checked = ((CheckBox) view).isChecked();
@@ -646,23 +636,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         switch(view.getId()) {
             case R.id.fb_friends:
                 if (checked){
+                    createFriendsMarkers();
+                }
+            else
+                {
+                    mMap.clear();
                     createMarkers(false);
                 }
-                // Put some meat on the sandwich
-            else
-                // Remove the meat
-                createMarkers(false);
                 break;
             case R.id.restraunts_near_you:
                 if (checked){
-                    createMarkers(false);
+                    createRestaurantsMarkers();
                 }
-                // Cheese me
             else
-                // I'm lactose intolerant
+                mMap.clear();
                 createMarkers(false);
                 break;
-            // TODO: Veggie sandwich
         }
     }
     private String getUrl(LatLng origin, LatLng dest) {
